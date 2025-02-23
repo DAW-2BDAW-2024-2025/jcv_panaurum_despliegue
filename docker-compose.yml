@@ -7,7 +7,7 @@ services:
     container_name: frontend
     volumes:
       - ${FRONTEND_PATH}:/app # Código fuente en desarrollo
-      - ./config/frontend/nginx.${TARGET}.conf:/etc/nginx/nginx.conf:ro
+      - ./config/frontend/nginx.${TARGET}d.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
