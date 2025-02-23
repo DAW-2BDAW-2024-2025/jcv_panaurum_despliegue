@@ -49,7 +49,7 @@ services:
       - db_data:/var/lib/mysql
 
   jenkins:
-    image: jenkins/jenkins:lts
+    image: jenkins/jenkins:lts-jdk11
     container_name: jenkins_panaurum_daw
     restart: unless-stopped
     privileged: true
