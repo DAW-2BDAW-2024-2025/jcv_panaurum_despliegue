@@ -18,6 +18,7 @@ RUN apk add --no-cache nginx
 RUN rm -f /etc/nginx/conf.d/default.conf
 
 # Copiar el archivo de configuración de producción de Nginx
+COPY nginx.prod.conf /etc/nginx/http.d/mi_sitio.conf
 #COPY nginx.prod.conf /etc/nginx/conf.d/default.conf
 
 # Configurar el directorio de Nginx
