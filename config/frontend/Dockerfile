@@ -7,8 +7,17 @@ FROM base AS dev
 EXPOSE 3000  
 
 
-# Etapa de producción con Nginx
-FROM base AS prod
-WORKDIR /usr/share/nginx/html
+# Etapa de producción con Node.js y Nginx
+FROM node:18-alpine AS prod
+WORKDIR /app
+
+# Instalamos Nginx en la imagen de Node.js
+RUN apk add --no-cache nginx
+
+# Configurar el directorio de Nginx
+RUN mkdir -p /run/nginx /usr/share/nginx/html
+
+# Exponer puerto HTTP
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]
