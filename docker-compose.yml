@@ -55,8 +55,8 @@ services:
     privileged: true
     user: root
     ports:
-      - "${JENKINS_PORT}:8081"
-      - "${JENKINS_AGENT_PORT}:50001"
+      - "${JENKINS_PORT}:8080"
+      - "${JENKINS_AGENT_PORT}:50000"
     networks:
       - jenkins
     volumes:
