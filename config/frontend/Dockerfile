@@ -14,6 +14,9 @@ WORKDIR /app
 # Instalamos Nginx en la imagen de Node.js
 RUN apk add --no-cache nginx
 
+# Eliminamos el archivo por defecto de Nginx
+RUN rm /etc/nginx/conf.d/default.conf
+
 # Configurar el directorio de Nginx
 RUN mkdir -p /run/nginx /usr/share/nginx/html
 
