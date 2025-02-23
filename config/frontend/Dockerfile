@@ -17,6 +17,9 @@ RUN apk add --no-cache nginx
 # Eliminamos el archivo de configuración por defecto de Nginx (solo si existe)
 RUN rm -f /etc/nginx/conf.d/default.conf
 
+# Copiar el archivo de configuración de producción de Nginx
+COPY nginx.prod.conf /etc/nginx/nginx.conf
+
 # Configurar el directorio de Nginx
 RUN mkdir -p /run/nginx /usr/share/nginx/html
 
