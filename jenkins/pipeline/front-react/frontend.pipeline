@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    environment {
+        FRONTEND_PATH = "/home/jorgecv/panaurum/front_daw" // Ruta del volumen en el host
+        FRONTEND_CONTAINER = "frontend" // Nombre del contenedor frontend en Docker
+        NGINX_DIR = "/usr/share/nginx/html" // Carpeta donde Nginx sirve los archivos
+        CREDENTIALS_ID = "github-token" // ID de las credenciales en Jenkins
+    }
+
+    stages {
+        stage("Actualizar Repositorio") {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: CREDENTIALS_ID, variable: 'GIT_CREDENTIALS')]) {
+                        sh """
+                            git config --global --add safe.directory ${FRONTEND_PATH}
+                            cd ${FRONTEND_PATH}
+                            git pull https://${GIT_CREDENTIALS}@github.com/DAW-2BDAW-2024-2025/jcv_panaurum_react.git main
+                        """
+                    }
+                }
+            }
+        }
+
+
+        stage('Instalar dependencias') {
+            steps {
+                sh "docker exec -i ${FRONTEND_CONTAINER} sh -c 'npm install'"
+            }
+        }
+
+        stage('Compilar Proyecto') {
+            steps {
+                sh "docker exec -i ${FRONTEND_CONTAINER} sh -c 'npm run build'"
+            }
+        }
+
+        stage('Mover archivos compilados a Nginx') {
+            steps {
+                sh "docker exec -i ${FRONTEND_CONTAINER} sh -c 'rm -rf ${NGINX_DIR}/* && mv build/* ${NGINX_DIR}/'"
+            }
+        }
+
+        stage('Reiniciar el contenedor') {
+            steps {
+                sh "docker restart ${FRONTEND_CONTAINER}"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🚀 Despliegue exitoso en producción."
+        }
+        failure {
+            echo "❌ Algo falló en el despliegue."
+        }
+    }
+}
