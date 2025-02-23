@@ -1,0 +1,70 @@
+services:
+  frontend:
+    build:
+      context: ./config/frontend
+      dockerfile: Dockerfile
+      target: ${TARGET} # Permitimos cambiar entre `dev` y `prod`
+    container_name: frontend
+    volumes:
+      - ${FRONTEND_PATH}:/app # Código fuente en desarrollo
+      - ./config/frontend/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - REACT_APP_API_URL=${BACKEND_URL}
+    depends_on:
+      - backend
+    command: sh -c "if [ \"$NODE_ENV\" = 'production' ]; then nginx -g 'daemon off;'; else tail -f /dev/null; fi"
+
+
+  backend:
+    build:
+      context: ./config/backend
+      dockerfile: Dockerfile
+    container_name: backend
+    working_dir: /var/www
+    volumes:
+      - ${BACKEND_PATH}:/var/www
+      - ./config/backend/000-default.conf:/etc/apache2/sites-available/000-default.conf
+    ports:
+      - "${BACKEND_PORT}:8000"
+    depends_on:
+      - db
+
+  db:
+    image: mariadb:10.6
+    container_name: database
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins_panaurum_daw
+    restart: unless-stopped
+    privileged: true
+    user: root
+    ports:
+      - "${JENKINS_PORT}:8081"
+      - "${JENKINS_AGENT_PORT}:50001"
+    networks:
+      - jenkins
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  db_data:
+  jenkins_home:
+
+
+networks:
+  jenkins:
