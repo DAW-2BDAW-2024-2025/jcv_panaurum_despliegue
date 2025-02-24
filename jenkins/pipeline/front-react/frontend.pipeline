@@ -16,6 +16,8 @@ pipeline {
                         sh """
                             git config --global --add safe.directory ${FRONTEND_PATH}
                             cd ${FRONTEND_PATH}
+                            git checkout .
+                            git reset --hard
                             git pull https://${GIT_CREDENTIALS}@github.com/DAW-2BDAW-2024-2025/jcv_panaurum_react.git main
                         """
                     }

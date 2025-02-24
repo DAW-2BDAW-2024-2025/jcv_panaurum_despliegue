@@ -1,0 +1,79 @@
+pipeline {
+    pipeline {
+    agent any
+
+    environment {
+        BACKEND_PATH = "/home/jorgecv/panaurum/back_daw" // Ruta del volumen en el host
+        BACKEND_CONTAINER = "backend" // Nombre del contenedor frontend en Docker
+        NGINX_DIR = "/usr/share/nginx/html" // Carpeta donde Nginx sirve los archivos
+        CREDENTIALS_ID = "github-token" // ID de las credenciales en Jenkins
+    }
+
+    stages {
+        stage("Actualizar Repositorio") {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: CREDENTIALS_ID, variable: 'GIT_CREDENTIALS')]) {
+                        sh """
+                            git config --global --add safe.directory ${BACKEND_PATH}
+                            cd ${BACKEND_PATH}
+                            git checkout .
+                            git pull https://${GIT_CREDENTIALS}@github.com/DAW-2BDAW-2024-2025/jcv_panaurum_laravel.git main
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Corregir permisos') {
+            steps {
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'chown -R www-data:www-data /var/www'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'chmod -R 775 /var/www'"
+            }
+        }
+
+
+        stage('Instalar dependencias') {
+            steps {
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'git config --global --add safe.directory /var/www'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'composer install --no-dev --no-interaction --optimize-autoloader'"
+            }
+        }
+        
+
+        stage('Ejecutar comandos de Laravel') {
+            steps {
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan cache:clear'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan config:clear'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan route:clear'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan view:clear'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan migrate --force'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan config:cache'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan route:cache'"
+                sh "docker exec -i ${BACKEND_CONTAINER} sh -c 'php artisan view:cache'"
+            }
+        }
+
+        stage('Reiniciar el contenedor si hubo cambios') {
+            steps {
+                script {
+                    def changes = sh(script: "cd ${BACKEND_PATH} && git diff --quiet HEAD@{1} HEAD || echo 'changed'", returnStdout: true).trim()
+                    if (changes == "changed") {
+                        sh "docker restart ${BACKEND_CONTAINER}"
+                    } else {
+                        echo "No hay cambios en el backend, no es necesario reiniciar el contenedor."
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🚀 Despliegue exitoso en producción."
+        }
+        failure {
+            echo "❌ Algo falló en el despliegue."
+        }
+    }
+}
